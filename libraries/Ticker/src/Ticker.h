@@ -28,14 +28,24 @@
 extern "C" {
   #include "esp_timer.h"
 }
+//#include <type_traits> // C++20 version has the std::type_identity_t built in
 
 class Ticker
 {
 public:
   Ticker();
   ~Ticker();
-  typedef void (*callback_t)(void);
-  typedef void (*callback_with_arg_t)(void*);
+  using callback_t = void (*)(void);
+  using callback_with_arg_t = void (*)(void*);
+  ////////////////////// OBSOLETE when xtensa32 toolchain has C++20 by default:
+  // std::type_identity_t is part of C++20 but current toolchain uses C++11.
+  // The following block is backporting the feature and will be obsolete soon.
+  // When this is the case, include <type_traits> and use std::type_indentity_t
+  template<typename T>
+  struct type_identity {using type = T;};
+  template<class T>
+  using type_identity_t = typename type_identity<T>::type;
+  ////////////////////// End soon to be obsolete part
 
   void attach(float seconds, callback_t callback)
   {
@@ -48,7 +58,12 @@ public:
   }
 
   template<typename TArg>
-  void attach(float seconds, void (*callback)(TArg), TArg arg)
+  // "type_identity_t": Prevents the compiler from attempting template type deduction
+  // on the first argument. This allows us to directly pass-in a non-capturing
+  // lambda function which can be implicitly converted into a void (*)(void*)
+  // function pointer - which however prevents automatic template type deduction.
+  // That is no problem when type can be deduced from second argument like follows:
+  void attach(float seconds, void (*callback)(type_identity_t<TArg>), TArg arg)
   {
     static_assert(sizeof(TArg) <= sizeof(uint32_t), "attach() callback argument size must be <= 4 bytes");
     // C-cast serves two purposes:
@@ -59,7 +74,7 @@ public:
   }
 
   template<typename TArg>
-  void attach_ms(uint32_t milliseconds, void (*callback)(TArg), TArg arg)
+  void attach_ms(uint32_t milliseconds, void (*callback)(type_identity_t<TArg>), TArg arg)
   {
     static_assert(sizeof(TArg) <= sizeof(uint32_t), "attach_ms() callback argument size must be <= 4 bytes");
     uint32_t arg32 = (uint32_t)arg;
@@ -77,7 +92,7 @@ public:
   }
 
   template<typename TArg>
-  void once(float seconds, void (*callback)(TArg), TArg arg)
+  void once(float seconds, void (*callback)(type_identity_t<TArg>), TArg arg)
   {
     static_assert(sizeof(TArg) <= sizeof(uint32_t), "attach() callback argument size must be <= 4 bytes");
     uint32_t arg32 = (uint32_t)(arg);
@@ -85,7 +100,7 @@ public:
   }
 
   template<typename TArg>
-  void once_ms(uint32_t milliseconds, void (*callback)(TArg), TArg arg)
+  void once_ms(uint32_t milliseconds, void (*callback)(type_identity_t<TArg>), TArg arg)
   {
     static_assert(sizeof(TArg) <= sizeof(uint32_t), "attach_ms() callback argument size must be <= 4 bytes");
     uint32_t arg32 = (uint32_t)(arg);
