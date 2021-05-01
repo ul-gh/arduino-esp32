@@ -160,8 +160,9 @@ set(includedirs
 
 set(srcs ${CORE_SRCS} ${LIBRARY_SRCS} ${BLE_SRCS})
 set(priv_includes cores/esp32/libb64)
-set(requires spi_flash mbedtls mdns esp_adc_cal)
-set(priv_requires fatfs nvs_flash app_update spiffs bootloader_support openssl bt arduino_tinyusb main)
+set(rmaker_requires button  esp_rainmaker  esp_schedule  json_generator json_parser  qrcode  rmaker_common  ws2812_led)
+set(requires spi_flash mbedtls mdns esp_adc_cal wifi_provisioning esp_ipc spiffs ${rmaker_requires})
+set(priv_requires fatfs nvs_flash app_update spiffs bootloader_support openssl bt main)
 
 if(NOT CONFIG_ARDUINO_SELECTIVE_COMPILATION OR CONFIG_ARDUINO_SELECTIVE_ArduinoOTA)
   list(APPEND priv_requires esp_https_ota)
